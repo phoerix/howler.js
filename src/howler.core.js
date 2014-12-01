@@ -318,6 +318,11 @@
         return;
       }
 
+      // Make sure our source is in an array.
+      if (typeof self._src === 'string') {
+        self._src = [self._src];
+      }
+
       // Loop through the sources and pick the first one that is compatible.
       for (var i=0; i<self._src.length; i++) {
         var ext, str;
@@ -412,7 +417,7 @@
       // for the sound to load to get our audio's duration.
       if (!self._loaded && !self._sprite[sprite]) {
         self.once('load', function() {
-          self.play(sound._id);
+          self.play(self._soundById(sound._id) ? sound._id : undefined);
         });
         return sound._id;
       }
@@ -618,14 +623,15 @@
       var self = this;
 
       // Wait for the sound to begin playing before stopping it.
+      if (!self._loaded) {
+        if (typeof self._sounds[0]._sprite !== 'undefined') {
+          self.once('play', function() {
+            self.stop(id);
+          });
+        }
 
-      //if (!self._loaded) {
-      //  self.once('play', function() {
-      //    self.stop(id);
-      //  });
-      //
-      //  return self;
-      //}
+        return self;
+      }
 
       // If no id is passed, get all ID's to be stopped.
       var ids = self._getSoundIds(id);
@@ -888,6 +894,7 @@
       } else if (args.length === 1) {
         if (typeof args[0] === 'boolean') {
           loop = args[0];
+          self._loop = loop;
         } else {
           // Return this sound's loop value.
           sound = self._soundById(parseInt(args[0], 10));
@@ -1487,7 +1494,7 @@
         xhr.onerror = function() {
           // If there is an error, switch to HTML5 Audio.
           if (self._webAudio) {
-            self._buffer = true;
+            self._html5 = true;
             self._webAudio = false;
             self._sounds = [];
             delete cache[url];
